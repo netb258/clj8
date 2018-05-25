@@ -742,5 +742,4 @@
     :key-released (fn [] (swap! chip8-state #(write-register % :key 0)))
     :draw emulation-loop!
     :features [:exit-on-close]
-    :size [screen-width screen-height])
-  (println "Done!")) ;; Signal that we have loaded the program.
+    :size [screen-width screen-height]))
