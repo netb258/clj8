@@ -4,6 +4,7 @@ Uses the Quil graphics library for rendering.
 
 ![Alt text](./screenshot.png?raw=true "Title")
 ![Alt text](./screenshot_2.png?raw=true "Title")
+![Alt text](./screenshot_3.png?raw=true "Title")
 
 # Usage
 lein run PATH_TO_ROM
