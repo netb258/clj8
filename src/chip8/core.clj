@@ -77,24 +77,26 @@
                           (vec (repeat rows 0))))}))
 
 (defn- get-in-range
-  "Get arr from start to end."
+  "Get arr from start to end.
+  Ex: (get-in-range [0 1 2 3 4 5] 1 4) => [1 2 3]"
   ([arr start end] (get-in-range arr (range start end)))
   ([arr rge]
    (reduce #(conj %1 (get-in arr [%2])) [] rge)))
 
 (defn- assoc-in-range
-  "Update arr with val from start."
+  "Update arr with val from start.
+  Examples:
+  (assoc-in-range [1 2 3 4 5] [6 7 8] 0) => [6 7 8 4 5]
+  (assoc-in-range [1 2 3 4 5] [6 7 8] 2) => [1 2 6 7 8]"
   ([arr val] (assoc-in-range arr val 0))
   ([arr val start-or-range]
-   (if (sequential? start-or-range)
-     (reduce #(assoc-in %1 [%2] (nth val %2)) arr start-or-range)
-     (let [bound (range (count val))
-           start start-or-range]
-       (reduce #(assoc-in %1 [(+ %2 start)] (nth val %2)) arr bound)))))
+   (let [bound (range (count val))
+         start start-or-range]
+     (reduce #(assoc-in %1 [(+ %2 start)] (nth val %2)) arr bound))))
 
 (defn ->bcd
-  "Convert val to BCD array.
-  ex: (->bcd 123) => [1 2 3]."
+  "Convert val to BCD (Binary Coded Decimal) array.
+  Ex: (->bcd 123) => [1 2 3]."
   [val]
   [(int (/ val 100))
    (int (/ (mod val 100) 10))
