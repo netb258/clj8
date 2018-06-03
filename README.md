@@ -1,5 +1,5 @@
 # CLJ8
-Chip8 emulator written in Clojure.
+Functional chip8 emulator written in Clojure.
 Uses the Quil graphics library for rendering.
 
 ![Alt text](./screenshot.png?raw=true "Title")
