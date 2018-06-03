@@ -1,6 +1,7 @@
 (ns chip8.core
   (:require [clojure.core.match :refer [match]]
-            [quil.core :as q])
+            [quil.core :as q]
+            [quil.middleware :as m])
   (:gen-class))
 
 ;; ------------------------------------------------------------------------------------------------------
@@ -670,7 +671,6 @@
 ;; -------------------------------------------- GUI PORTION ---------------------------------------------
 ;; ------------------------------------------------------------------------------------------------------
 
-(def chip8-state (atom (make-cpu)))
 (def current-rom (atom ""))
 
 (def speed 11)
@@ -685,7 +685,11 @@
   (q/frame-rate fps)
   (q/stroke 0)
   (q/stroke-weight 0)
-  (q/background 20 20 20))
+  (q/background 20 20 20)
+  (-> (make-cpu) (load-rom (file-to-bytes @current-rom))))
+
+(defn update-state [state]
+  (step state speed))
 
 (defn draw-state!
   "Render the canvas according to graphics memory."
@@ -697,51 +701,46 @@
         (q/fill 255 255 255)
         (q/rect (* x scale) (* y scale) scale scale)))))
 
-(defn emulation-loop! []
-  (swap! chip8-state #(step % speed))
-  (draw-state! @chip8-state))
-
-(defn get-key []
-  (let [raw-key (q/raw-key)
-        the-key-code (q/key-code)
-        the-key-pressed (if (= processing.core.PConstants/CODED (int raw-key)) the-key-code raw-key)]
-    the-key-pressed))
-
 ;; NOTE: the original computers that used chip8 had a hexadecimal pad as their imput (the keys from 0 to F).
 ;; This is not convenient on modern keyboards, so we are going to use the left hand side of the QWERTY.
-(defn read-keyboard []
-  (let [user-input (get-key)]
-    (cond
-      (= \1 user-input) (swap! chip8-state #(write-register % :key 0x01))
-      (= \2 user-input) (swap! chip8-state #(write-register % :key 0x02))
-      (= \3 user-input) (swap! chip8-state #(write-register % :key 0x03))
-      (= \4 user-input) (swap! chip8-state #(write-register % :key 0x0C))
-      (= \q user-input) (swap! chip8-state #(write-register % :key 0x04))
-      (= \w user-input) (swap! chip8-state #(write-register % :key 0x05))
-      (= \e user-input) (swap! chip8-state #(write-register % :key 0x06))
-      (= \r user-input) (swap! chip8-state #(write-register % :key 0x0D))
-      (= \a user-input) (swap! chip8-state #(write-register % :key 0x07))
-      (= \s user-input) (swap! chip8-state #(write-register % :key 0x08))
-      (= \d user-input) (swap! chip8-state #(write-register % :key 0x09))
-      (= \f user-input) (swap! chip8-state #(write-register % :key 0x0E))
-      (= \z user-input) (swap! chip8-state #(write-register % :key 0x0A))
-      (= \x user-input) (swap! chip8-state #(write-register % :key 0x00))
-      (= \c user-input) (swap! chip8-state #(write-register % :key 0x0B))
-      (= \v user-input) (swap! chip8-state #(write-register % :key 0x0F))
-      ;; Restart the emulator when the user presses enter.
-      (= \newline user-input) (reset! chip8-state (-> (make-cpu) (load-rom (file-to-bytes @current-rom)))))))
+(defn key-pressed
+  [state {:keys [key key-code]}]
+  (cond
+    (= :1 key) (write-register state :key 0x01)
+    (= :2 key) (write-register state :key 0x02)
+    (= :3 key) (write-register state :key 0x03)
+    (= :4 key) (write-register state :key 0x0C)
+    (= :q key) (write-register state :key 0x04)
+    (= :w key) (write-register state :key 0x05)
+    (= :e key) (write-register state :key 0x06)
+    (= :r key) (write-register state :key 0x0D)
+    (= :a key) (write-register state :key 0x07)
+    (= :s key) (write-register state :key 0x08)
+    (= :d key) (write-register state :key 0x09)
+    (= :f key) (write-register state :key 0x0E)
+    (= :z key) (write-register state :key 0x0A)
+    (= :x key) (write-register state :key 0x00)
+    (= :c key) (write-register state :key 0x0B)
+    (= :v key) (write-register state :key 0x0F)
+    ;; NOTE: key code 10 is enter.
+    (= 10 key-code) (-> (make-cpu) (load-rom (file-to-bytes @current-rom)))
+    :else state))
+
+(defn key-released [state keys-map]
+  (write-register state :key 0))
 
 (defn -main [argv]
   ;; The ROM to play must be specified as a command line argument.
   (reset! current-rom argv)
-  (swap! chip8-state #(-> % (load-rom (file-to-bytes @current-rom))))
   (q/defsketch chip8
     :title "Chip8"
     :settings #(q/smooth 2)
     :setup setup
+    :update update-state
     :renderer :opengl
-    :key-pressed read-keyboard
-    :key-released (fn [] (swap! chip8-state #(write-register % :key 0)))
-    :draw emulation-loop!
+    :key-pressed key-pressed
+    :key-released key-released
+    :draw draw-state!
     :features [:exit-on-close]
-    :size [screen-width screen-height]))
+    :size [screen-width screen-height]
+    :middleware [m/fun-mode]))
