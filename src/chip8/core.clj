@@ -677,20 +677,24 @@
 (def fps 60)
 (def screen-width 640)
 (def screen-height 320)
-;; Note the original chip8 monochrome display had 64x32 pixels,
+;; NOTE: the original chip8 monochrome display had 64x32 pixels,
 ;; we are using 640x320 pixels, so that's a scale of 10.
 (def scale 10)
 
+;; NOTE: This function will be called only once: before drawing the graphics.
 (defn setup []
   (q/frame-rate fps)
   (q/stroke 0)
   (q/stroke-weight 0)
   (q/background 20 20 20)
+  ;; Here we return the initial state that the other function(update-state, draw-state!, etc...) will work with.
   (-> (make-cpu) (load-rom (file-to-bytes @current-rom))))
 
+;; NOTE: This function will automatically get called after each frame.
 (defn update-state [state]
   (step state speed))
 
+;; NOTE: This function is called on each frame.
 (defn draw-state!
   "Render the canvas according to graphics memory."
   [{{:keys [columns rows memory]} :screen :as state}]
@@ -735,12 +739,12 @@
   (q/defsketch chip8
     :title "Chip8"
     :settings #(q/smooth 2)
-    :setup setup
-    :update update-state
     :renderer :opengl
+    :setup setup
+    :draw draw-state!
+    :update update-state
     :key-pressed key-pressed
     :key-released key-released
-    :draw draw-state!
-    :features [:exit-on-close]
     :size [screen-width screen-height]
+    :features [:exit-on-close]
     :middleware [m/fun-mode]))
